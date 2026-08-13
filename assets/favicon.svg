@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0D1017"/>
+  <!-- seis joias, uma por fase, na ordem em que aparecem na saga -->
+  <rect x="14" y="10"  width="8" height="8" rx="2" fill="#4090DF"/>
+  <rect x="28" y="10"  width="8" height="8" rx="2" fill="#D63C43"/>
+  <rect x="42" y="10"  width="8" height="8" rx="2" fill="#E68429"/>
+  <rect x="14" y="46"  width="8" height="8" rx="2" fill="#2BAE71"/>
+  <rect x="28" y="46"  width="8" height="8" rx="2" fill="#8A5BF0"/>
+  <rect x="42" y="46"  width="8" height="8" rx="2" fill="#E0B324"/>
+  <!-- o caminho ortogonal que o site desenha -->
+  <path d="M18 22v6h28v8H18v6" fill="none" stroke="#93A9CE" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

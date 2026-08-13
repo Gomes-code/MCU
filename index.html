@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cronologia MCU — Fluxograma Interativo</title>
+<meta name="description" content="Fluxograma interativo do Universo Cinematográfico Marvel na ordem em que os fatos acontecem: 59 títulos, as ligações entre eles e o motivo de cada dependência." />
+<meta name="theme-color" content="#090B11" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#E9EBF1" media="(prefers-color-scheme: light)" />
+<meta name="color-scheme" content="dark light" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Cronologia MCU — Fluxograma Interativo" />
+<meta property="og:description" content="Todos os filmes, séries e especiais do MCU na ordem dos fatos, com as ligações desenhadas e o motivo de cada dependência." />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body>
+
+<div class="intro" id="intro" role="button" tabindex="0" aria-label="Entrar na cronologia">
+  <div class="in">
+    <div class="rule"></div>
+    <h1><span><i>Cronologia</i></span><span><i><em>MCU</em></i></span></h1>
+    <p>Todos os filmes, séries e especiais do Universo Cinematográfico Marvel na ordem em que os fatos acontecem — não na ordem de lançamento.</p>
+    <div class="go">Clique para entrar</div>
+  </div>
+</div>
+
+<header class="bar">
+  <div class="brand"><b>Cronologia MCU</b><span id="count">—</span></div>
+  <div class="sep"></div>
+  <div class="chips" id="chips"></div>
+  <div class="grow"></div>
+  <div class="prog" title="Títulos marcados como assistidos">
+    <span id="pct">0%</span><span class="track"><span class="fill" id="fill"></span></span>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="Buscar título…" aria-label="Buscar título" />
+    <kbd>/</kbd>
+  </div>
+  <button class="iconbtn" id="tLeg" aria-pressed="true" title="Legenda">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+  </button>
+  <button class="iconbtn" id="tDen" title="Densidade: Padrão">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H9m0 0L5 7m4-4v18m0 0l-4-4m10 4h6m0 0l-4-4m4 4V3m0 0l-4 4"/></svg>
+  </button>
+  <button class="iconbtn" id="tTheme" title="Tema claro ou escuro">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M5 12H3m18 0h-2M6.3 6.3 4.9 4.9m14.2 14.2-1.4-1.4M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/><circle cx="12" cy="12" r="3.6"/></svg>
+  </button>
+</header>
+
+<div class="corner">Tempo</div>
+<div class="heads" aria-hidden="true"><div class="slide" id="headsSlide"></div></div>
+<div class="rail" aria-hidden="true"><div class="slide" id="railSlide"></div></div>
+
+<main class="stage" id="stage">
+  <div class="canvas" id="canvas"></div>
+</main>
+
+<div class="dock">
+  <div class="legend" id="legend">
+    <h4>Como ler as ligações</h4>
+    <div class="row">
+      <svg viewBox="0 0 34 12" aria-hidden="true"><path d="M2 6h24" stroke="var(--chrome)" stroke-width="1.9" fill="none"/><path d="M25 2.8 30 6l-5 3.2z" fill="var(--chrome)"/></svg>
+      <span><b>Continuação direta</b> — a sequência da franquia</span>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 34 12" aria-hidden="true"><path d="M2 6h24" stroke="var(--p2)" stroke-width="2.8" fill="none"/><path d="M25 2.4 30.5 6l-5.5 3.6z" fill="var(--p2)"/></svg>
+      <span><b>Inseparável</b> — a mesma história partida em dois</span>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 34 12" aria-hidden="true"><path d="M2 6h24" stroke="var(--ink3)" stroke-width="1.5" stroke-dasharray="5 5" fill="none"/><path d="M25 3 30 6l-5 3z" fill="var(--ink3)"/></svg>
+      <span><b>Dependência</b> — precisa ter visto para entender. Passe o mouse na linha para ver o motivo</span>
+    </div>
+    <hr />
+    <h4>Fases &amp; Joias do Infinito</h4>
+    <div class="stones" id="stones"></div>
+    <hr />
+    <p class="hint" style="margin:0">
+      Clique num card para abrir o dossiê e isolar as ligações dele.
+      Arraste o fundo para navegar; <b>Shift</b> + roda rola na horizontal.
+    </p>
+  </div>
+  <div class="map" id="map" title="Minimapa — clique ou arraste para navegar">
+    <div class="inner" id="mapIn"><div class="vp" id="vp"></div></div>
+  </div>
+</div>
+
+<div id="tip" role="tooltip"></div>
+
+<div class="veil" id="veil" hidden>
+  <article class="dossier" id="dossier" role="dialog" aria-modal="true" aria-labelledby="dTitle"></article>
+</div>
+
+<script src="/assets/js/data.js"></script>
+<script src="/assets/js/layout.js"></script>
+<script src="/assets/js/app.js"></script>
+</body>
+</html>
