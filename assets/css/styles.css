@@ -121,6 +121,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .14em;
   color: var(--ink3); text-transform: uppercase; min-width: 148px;
 }
+.brand span i { font-style: normal; }
 .bar .grow { flex: 1 1 auto; min-width: 0; }
 .sep { width: 1px; height: 22px; background: var(--line); flex: 0 0 auto; }
 
@@ -151,6 +152,49 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .search kbd {
   position: absolute; right: 8px; top: 8px; font-family: var(--f-mono);
   font-size: 10px; color: var(--ink3); pointer-events: none;
+}
+
+/* ---- sugestões da busca ---- */
+.sugg {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 90;
+  margin: 0; padding: 4px; list-style: none;
+  max-height: min(60vh, 400px); overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line2); border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.sugg[hidden] { display: none; }
+.sugg li { border-radius: 7px; }
+.sugg button {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 9px; align-items: baseline;
+  width: 100%; text-align: left; padding: 8px 9px; border-radius: 7px;
+  transition: background .12s;
+}
+.sugg button .ph {
+  font-family: var(--f-mono); font-size: 9px; font-weight: 700; letter-spacing: .06em;
+  color: var(--pc); padding: 2px 5px; border-radius: 4px;
+  background: color-mix(in srgb, var(--pc) 16%, transparent);
+}
+.sugg button .nm {
+  font-family: var(--f-display); font-size: 14.5px; letter-spacing: .02em;
+  color: var(--ink); line-height: 1.2; min-width: 0;
+}
+.sugg button .nm mark {
+  background: color-mix(in srgb, var(--chrome) 34%, transparent);
+  color: inherit; border-radius: 2px; padding: 0 1px;
+}
+.sugg button .nm em {
+  display: block; font-style: normal; font-family: var(--f-body);
+  font-size: 11px; color: var(--ink3); margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sugg button .yr {
+  font-family: var(--f-mono); font-size: 10px; color: var(--ink3);
+  font-variant-numeric: tabular-nums;
+}
+.sugg li.on button, .sugg button:hover { background: var(--panel2); }
+.sugg li.on button { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pc) 55%, transparent); }
+.sugg .vazio {
+  padding: 12px 10px; font-size: 12.5px; color: var(--ink3); font-style: italic;
 }
 
 .iconbtn {
@@ -763,8 +807,13 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .brand span { display: none; min-width: 0; font-size: 10px; }
   body.filtrando .brand span { display: inline; }
   body.filtrando .brand b { font-size: 15px; }
+  /* o termo buscado ja' esta' no campo; no celular o contador so' mostra o
+     numero, senao empurra os botoes para uma faixa a mais */
+  .brand span i { display: none; }
   .bar .grow { display: none; }
   .search { flex: 1 1 120px; order: 1; min-width: 110px; }
+  .sugg { left: -10px; right: -10px; max-height: 56vh; border-radius: 0 0 12px 12px; }
+  .sugg button { padding: 11px 10px; }
   .search input { height: 38px; font-size: 16px; }   /* 16px evita o zoom do iOS */
   .search kbd { display: none; }
   .iconbtn { order: 2; width: 38px; height: 38px; }

@@ -47,7 +47,11 @@ visto antes; o texto completo do "quando se passa" aparece ao passar o mouse.
 recalculado e o roteamento refeito, então o texto nunca fica borrado. Na Padrão
 o diagrama ocupa 2278px — cabe em ~80% de uma tela de 1920; na Compacta, 1865px.
 
-**Atalhos.** `/` foca a busca · `Esc` limpa seleção, filtro ou fecha o dossiê ·
+**Busca.** Digitar abre uma lista de sugestões; escolher uma leva a tela até o
+título e acende as ligações dele. Funciona sem acento — "capita" acha
+*Capitã Marvel*, "guardioes" acha *Guardiões*. Setas e Enter navegam pela lista.
+
+**Atalhos.** `/` foca a busca · `Esc` fecha a lista, depois limpa seleção e filtro ·
 clicar no fundo desfaz a seleção e volta ao filtro que estiver ativo ·
 arrastar o fundo navega · `Shift` + roda rola na horizontal.
 

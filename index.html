@@ -37,8 +37,11 @@
     <span id="pct">0%</span><span class="track"><span class="fill" id="fill"></span></span>
   </div>
   <div class="search">
-    <input id="q" type="search" placeholder="Buscar título…" aria-label="Buscar título" />
+    <input id="q" type="search" placeholder="Buscar título…" aria-label="Buscar título"
+           role="combobox" aria-expanded="false" aria-controls="sugg"
+           aria-autocomplete="list" autocomplete="off" />
     <kbd>/</kbd>
+    <ul class="sugg" id="sugg" role="listbox" aria-label="Resultados da busca" hidden></ul>
   </div>
   <button class="iconbtn" id="tLeg" aria-pressed="true" title="Legenda">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>

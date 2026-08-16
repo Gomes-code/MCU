@@ -43,6 +43,11 @@
      no meio. O texto inteiro fica no title do card e no dossiê. */
   const curto = wh => wh.split(",")[0].trim();
 
+  /* Busca sem acento: em português ninguém digita "Capitã" com til, nem
+     "Guardiões" com o ~o. Cada título ganha um índice já normalizado. */
+  const semAcento = t => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  TITLES.forEach(n => { n._busca = semAcento(n.sh + " " + n.pt + " " + n.or); });
+
   function mline(n) {
     const bits = [];
     const rq = (n.req || []).map(r => byId[r[0]] && byId[r[0]].sh).filter(Boolean);
@@ -334,7 +339,8 @@
   const q = $("q"), chips = $("chips");
 
   function paint() {
-    const term = q.value.trim().toLowerCase();
+    const cru = q.value.trim();
+    const term = semAcento(cru);
     chips.querySelectorAll(".chip[data-ph]").forEach(c =>
       c.setAttribute("aria-pressed", String(+c.dataset.ph === phFilter)));
 
@@ -342,7 +348,7 @@
     const vis = new Set();
     TITLES.forEach(n => {
       const ok = (!phFilter || n.ph === phFilter) &&
-        (!term || (n.sh + " " + n.pt + " " + n.or).toLowerCase().includes(term));
+        (!term || n._busca.indexOf(term) >= 0);
       if (ok) vis.add(n.id);
       const c = cards[n.id];
       c.classList.toggle("dim", !ok);
@@ -355,8 +361,9 @@
     if (filtering) {
       const bits = [];
       if (phFilter) bits.push("Fase " + phFilter);
-      if (term) bits.push('"' + term + '"');
-      cEl.textContent = vis.size + " de " + TITLES.length + " · " + bits.join(" + ");
+      if (cru) bits.push('"' + cru + '"');
+      cEl.innerHTML = vis.size + " de " + TITLES.length +
+        "<i> · " + bits.join(" + ").replace(/[<>&]/g, "") + "</i>";
       cEl.style.color = vis.size ? "" : "var(--p2)";
     } else {
       cEl.textContent = TITLES.length + " títulos · " + R.rows + " linhas";
@@ -365,6 +372,10 @@
 
     canvas.querySelectorAll(".tag").forEach(t => t.remove());
     tagBoxes = [];
+
+    /* marcar o card escolhido vem antes de tudo que depende do SVG: no celular
+       não existe SVG, e a seleção precisa aparecer do mesmo jeito */
+    Object.keys(cards).forEach(id => cards[id].classList.toggle("sel", id === sel));
     if (!wires) return;
 
     if (sel) {
@@ -389,8 +400,6 @@
       wires.classList.remove("focus");
       edges.forEach(e => { e.el.classList.remove("on"); depMarker(e, false); });
     }
-
-    Object.keys(cards).forEach(id => cards[id].classList.toggle("sel", id === sel));
 
     const hot = new Set();
     if (sel) {
@@ -440,7 +449,108 @@
     t.style.top = y + "px";
   }
 
-  q.addEventListener("input", paint);
+  /* ---------------- sugestões da busca ----------------
+     Filtrar o diagrama mostra onde o título está, mas não leva até ele. A
+     lista resolve isso: escolher um resultado limpa a busca, seleciona o card
+     e centraliza a tela nele, com as ligações acesas. */
+  const sugg = $("sugg");
+  let achados = [], hi = -1;
+
+  const esc = t => t.replace(/[&<>"]/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function realce(texto, termo) {
+    const i = semAcento(texto).indexOf(termo);
+    if (i < 0) return esc(texto);
+    return esc(texto.slice(0, i)) + "<mark>" + esc(texto.slice(i, i + termo.length)) +
+           "</mark>" + esc(texto.slice(i + termo.length));
+  }
+
+  function fecharSugestoes() {
+    sugg.hidden = true;
+    sugg.textContent = "";
+    q.setAttribute("aria-expanded", "false");
+    q.removeAttribute("aria-activedescendant");
+    achados = []; hi = -1;
+  }
+
+  function sugerir() {
+    const termo = semAcento(q.value.trim());
+    if (termo.length < 1) return fecharSugestoes();
+
+    achados = TITLES
+      .filter(n => n._busca.indexOf(termo) >= 0)
+      .sort((a, b) => (R.row[a.id] - R.row[b.id]) || a.b - b.b)
+      .slice(0, 8);
+
+    if (!achados.length) {
+      sugg.innerHTML = '<li class="vazio">Nenhum título com “' + esc(q.value.trim()) + '”.</li>';
+      sugg.hidden = false;
+      q.setAttribute("aria-expanded", "true");
+      hi = -1;
+      return;
+    }
+
+    hi = 0;
+    sugg.innerHTML = achados.map((n, i) =>
+      '<li id="sg' + i + '" role="option" aria-selected="' + (i === 0) + '"' +
+        (i === 0 ? ' class="on"' : "") + ' style="--pc:' + phColor(n) + '">' +
+        '<button type="button" data-i="' + i + '">' +
+          '<span class="ph">' + (n.ph ? "F" + n.ph : "ALT") + "</span>" +
+          '<span class="nm">' + realce(n.sh, termo) +
+            "<em>" + esc(n.pt !== n.sh ? n.pt : colName[n.col] + " · " + TIPO[n.t]) +
+            "</em></span>" +
+          '<span class="yr">' + n.y + "</span>" +
+        "</button></li>").join("");
+    sugg.hidden = false;
+    q.setAttribute("aria-expanded", "true");
+    q.setAttribute("aria-activedescendant", "sg0");
+  }
+
+  function mover(passo) {
+    if (!achados.length) return;
+    hi = (hi + passo + achados.length) % achados.length;
+    [...sugg.children].forEach((li, i) => {
+      li.classList.toggle("on", i === hi);
+      li.setAttribute("aria-selected", String(i === hi));
+    });
+    q.setAttribute("aria-activedescendant", "sg" + hi);
+    const li = sugg.children[hi];
+    if (li) li.scrollIntoView({ block: "nearest" });
+  }
+
+  function escolher(id) {
+    q.value = "";
+    fecharSugestoes();
+    sel = id;
+    paint();
+    center(id);
+    /* no celular o teclado virtual some e devolve a tela ao diagrama */
+    if (isMobile()) q.blur();
+  }
+
+  sugg.addEventListener("mousedown", ev => {
+    const b = ev.target.closest("button[data-i]");
+    if (!b) return;
+    ev.preventDefault();               /* não deixa o blur fechar antes do clique */
+    const n = achados[+b.dataset.i];
+    if (n) escolher(n.id);
+  });
+
+  q.addEventListener("input", () => { paint(); sugerir(); });
+  q.addEventListener("focus", () => { if (q.value.trim()) sugerir(); });
+  q.addEventListener("blur", () => setTimeout(fecharSugestoes, 120));
+  q.addEventListener("keydown", ev => {
+    if (ev.key === "ArrowDown") { ev.preventDefault(); mover(1); }
+    else if (ev.key === "ArrowUp") { ev.preventDefault(); mover(-1); }
+    else if (ev.key === "Enter" && hi >= 0 && achados[hi]) {
+      ev.preventDefault();
+      escolher(achados[hi].id);
+    } else if (ev.key === "Escape" && !sugg.hidden) {
+      ev.stopPropagation();            /* o Esc fecha a lista antes de mais nada */
+      fecharSugestoes();
+    }
+  });
 
   /* ---------------- assistidos ---------------- */
   function toggleSeen(id) {
