@@ -136,18 +136,54 @@
       (outs[e.a] = outs[e.a] || []).push(e);
       (ins[e.b] = ins[e.b] || []).push(e);
     });
-    /* saídas ordenadas pelo x do destino e entradas pelo x da origem:
-       assim os fios saem e chegam sem trocar de lado no caminho */
-    Object.keys(outs).forEach(id => {
-      const arr = outs[id].sort((p, q) => (pos[p.b].x - pos[q.b].x) || (p.b < q.b ? -1 : 1));
-      const n = arr.length, x0 = pos[id].x;
-      arr.forEach((e, i) => { e.px = x0 + cardW * (i + 1) / (n + 1); });
-    });
-    Object.keys(ins).forEach(id => {
-      const arr = ins[id].sort((p, q) => (pos[p.a].x - pos[q.a].x) || (p.a < q.a ? -1 : 1));
-      const n = arr.length, x0 = pos[id].x;
-      arr.forEach((e, i) => { e.qx = x0 + cardW * (i + 1) / (n + 1); });
-    });
+    /* Uma ligação de cada card é a principal e sai/entra pelo centro; as
+       outras se distribuem ao redor. Quando os dois cards elegem a mesma
+       ligação — o caso comum de uma sequência na mesma coluna — as duas portas
+       caem no mesmo x e o traço vira uma reta, sem degrau. */
+    const cmp = (a, b) => {
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i];
+      return 0;
+    };
+    /* elege a ligação principal: mesma coluna primeiro, depois continuação
+       declarada, depois a mais próxima na vertical */
+    const anchorOf = (arr, id, other) => {
+      const me = pos[id];
+      let best = null, bestKey = null;
+      arr.filter(e => e.kind !== "dep").forEach(e => {
+        const o = pos[e[other]];
+        const key = [Math.abs(o.c - me.c), Math.abs(o.r - me.r), e.isNext ? 0 : 1];
+        if (!best || cmp(key, bestKey) < 0) { best = e; bestKey = key; }
+      });
+      return best;
+    };
+    /* espalha uma lista de arestas numa faixa [a, b] da largura do card */
+    const spread = (list, x0, a, b, key) => {
+      const n = list.length;
+      if (!n) return;
+      if (n === 1) { list[0][key] = x0 + cardW * (a + b) / 2; return; }
+      list.forEach((e, i) => { e[key] = x0 + cardW * (a + (b - a) * i / (n - 1)); });
+    };
+
+    const assign = (map, other, key) => {
+      Object.keys(map).forEach(id => {
+        const arr = map[id].sort((p, q) =>
+          (pos[p[other]].x - pos[q[other]].x) || (p[other] < q[other] ? -1 : 1));
+        const x0 = pos[id].x;
+        const anchor = anchorOf(arr, id, other);
+        if (!anchor) {
+          const n = arr.length;
+          arr.forEach((e, i) => { e[key] = x0 + cardW * (i + 1) / (n + 1); });
+          return;
+        }
+        anchor[key] = x0 + cardW * 0.5;
+        const rest = arr.filter(e => e !== anchor);
+        const mine = pos[id].x;
+        spread(rest.filter(e => pos[e[other]].x < mine), x0, 0.10, 0.38, key);
+        spread(rest.filter(e => pos[e[other]].x >= mine), x0, 0.62, 0.90, key);
+      });
+    };
+    assign(outs, "b", "px");
+    assign(ins, "a", "qx");
 
     /* Quando dois cards da mesma franquia ficam em linhas vizinhas, as saídas
        do de cima e as entradas do de baixo dividem o mesmo corredor. Se uma
@@ -162,14 +198,19 @@
       const leaving = outs[A.id] || [];
       if (!arriving.length || !leaving.length) return;
 
+      /* A ligação que vai de A direto para o card de baixo não entra na conta:
+         ali as duas portas coincidirem é o objetivo, não um conflito — é o que
+         transforma o traço numa reta contínua. */
+      const direta = arriving.find(e => e.a === A.id);
       const x0 = pos[belowId].x;
-      const blocked = leaving.map(e => e.px);
+      const blocked = leaving.filter(e => e !== direta).map(e => e.px);
       const slots = [];
       const total = arriving.length + leaving.length + 1;
       for (let k = 1; k <= total; k++) slots.push(x0 + cardW * k / (total + 1));
 
-      const used = [];
+      const used = direta ? [direta.qx] : [];
       arriving.forEach(e => {
+        if (e === direta) return;                        /* mantém a reta */
         const free = slots.filter(s =>
           blocked.every(x => Math.abs(x - s) >= PORT_MIN) &&
           used.every(x => Math.abs(x - s) >= PORT_MIN));
@@ -192,7 +233,25 @@
      A ordem importa: o trecho vertical que desce de um card cruza tudo o que
      está acima da sua faixa, e o que sobe para um card cruza tudo o que está
      abaixo. Com as zonas nesta ordem, descidas e subidas nunca se encontram. */
-  function route(edges, pos, G, cfg, nCols, rows) {
+  function route(edges, pos, G, cfg, nCols, rows, cellAt) {
+    /* Quando os dois cards estão na mesma coluna, as portas coincidem e não há
+       nenhum card entre eles, o caminho é um traço reto de ponta a ponta — sem
+       corredor e sem degrau. É o desenho mais legível possível para uma
+       sequência direta, e é o que o olho espera ver. */
+    const reta = new Set();
+    const colBusy = {};
+    edges.forEach(e => {
+      const A = pos[e.a], B = pos[e.b];
+      if (A.c !== B.c || Math.abs(e.px - e.qx) > 0.6) return;
+      for (let r = A.r + 1; r < B.r; r++) if (cellAt[r + "|" + A.c]) return;
+      /* duas retas na mesma coluna não podem dividir o mesmo x */
+      const lane = (colBusy[A.c] = colBusy[A.c] || new Alloc());
+      const y1 = A.y + cfg.cardH, y2 = B.y;
+      if (lane.probe(y1, y2, 2) !== 0) return;
+      lane.take(y1, y2, 2);
+      reta.add(e.key);
+    });
+
     const hOut = [], hMid = [], hIn = [], vCh = [];
     for (let i = 0; i <= rows; i++) {
       hOut[i] = new Alloc(); hMid[i] = new Alloc(); hIn[i] = new Alloc();
@@ -215,6 +274,11 @@
        conservador, porém garante que dois fios verticais não se sobreponham. */
     order.forEach(e => {
       const A = pos[e.a], B = pos[e.b];
+      if (reta.has(e.key)) {
+        e.pts = [[e.px, A.y + cfg.cardH], [e.qx, B.y]];
+        e.straight = true;
+        return;
+      }
       e.long = (B.r - A.r) >= 2;
       if (!e.long) return;
       const ay = A.y + cfg.cardH, by = B.y;
@@ -234,7 +298,7 @@
 
     /* passe B — saltos longos: zona de saída no topo, de entrada no fundo */
     order.forEach(e => {
-      if (!e.long) return;
+      if (e.straight || !e.long) return;
       const A = pos[e.a], B = pos[e.b];
       const ay = A.y + cfg.cardH, by = B.y;
       const gO = A.r + 1, gI = B.r;
@@ -247,7 +311,7 @@
 
     /* passe C — linhas vizinhas, na zona do meio (já sabemos a altura da de saída) */
     order.forEach(e => {
-      if (e.long) return;
+      if (e.straight || e.long) return;
       const A = pos[e.a], B = pos[e.b];
       const ay = A.y + cfg.cardH, by = B.y;
       const g = A.r + 1;
@@ -294,8 +358,9 @@
         cellAt[r + "|" + c] = n.id;
       });
 
+      edges.forEach(e => { e.straight = false; e.long = false; });
       ports(titles, edges, pos, cfg.cardW, cellAt);
-      used = route(edges, pos, G, cfg, nCols, rows);
+      used = route(edges, pos, G, cfg, nCols, rows, cellAt);
 
       let grew = false;
       for (let i = 0; i <= rows; i++) {
@@ -371,7 +436,7 @@
       const k = n.id + ">" + id;
       if (k in index) return;
       index[k] = edges.length;
-      edges.push({ a: n.id, b: id, kind: S.has(k) ? "hard" : "seq", why: null, key: k });
+      edges.push({ a: n.id, b: id, kind: S.has(k) ? "hard" : "seq", why: null, key: k, isNext: true });
       preds[id].push(n.id);
       prevOf[id] = n.id;
     }));

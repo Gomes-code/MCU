@@ -62,6 +62,10 @@
 <div class="dock">
   <div class="legend" id="legend">
     <h4>Como ler as ligações</h4>
+    <button class="fold" id="fold" aria-expanded="true" aria-controls="legendBody" title="Recolher legenda">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="body" id="legendBody">
     <div class="row">
       <svg viewBox="0 0 34 12" aria-hidden="true"><path d="M2 6h24" stroke="var(--chrome)" stroke-width="1.9" fill="none"/><path d="M25 2.8 30 6l-5 3.2z" fill="var(--chrome)"/></svg>
       <span><b>Continuação direta</b> — a sequência da franquia</span>
@@ -75,13 +79,14 @@
       <span><b>Dependência</b> — precisa ter visto para entender. Passe o mouse na linha para ver o motivo</span>
     </div>
     <hr />
-    <h4>Fases &amp; Joias do Infinito</h4>
+    <h4>Fases &amp; Sagas</h4>
     <div class="stones" id="stones"></div>
     <hr />
     <p class="hint" style="margin:0">
       Clique num card para abrir o dossiê e isolar as ligações dele.
       Arraste o fundo para navegar; <b>Shift</b> + roda rola na horizontal.
     </p>
+    </div>
   </div>
   <div class="map" id="map" title="Minimapa — clique ou arraste para navegar">
     <div class="inner" id="mapIn"><div class="vp" id="vp"></div></div>

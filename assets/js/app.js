@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  const { COLS, BEATS, STONES, STRICT, TITLES } = window.MCU;
+  const { COLS, BEATS, SAGAS, SAGA_DE, STRICT, TITLES } = window.MCU;
   const LX = window.MCULayout;
   const NS = "http://www.w3.org/2000/svg";
   const $ = id => document.getElementById(id);
@@ -19,11 +19,13 @@
   const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
   const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* três níveis de densidade; o card fica menor, não borrado */
+  /* Três densidades. O card encolhe de verdade — muda o layout, não a escala,
+     então o texto continua nítido. A padrão foi calibrada para o diagrama
+     caber em ~80% de uma tela de 1920 e 66% de uma de 1600. */
   const DENS = [
-    { name: "Padrão",   cardW: 176, cardH: 92,  gapV: 38, gapH: 46, stepH: 9,   stepV: 10, font: 15.5 },
-    { name: "Compacta", cardW: 142, cardH: 78,  gapV: 30, gapH: 36, stepH: 7.5, stepV: 8,  font: 13.5 },
-    { name: "Ampla",    cardW: 208, cardH: 104, gapV: 46, gapH: 56, stepH: 10,  stepV: 12, font: 17 }
+    { name: "Padrão",   cardW: 136, cardH: 80, gapV: 24, gapH: 32, padH: 9,  padV: 8,  stepH: 6,   stepV: 6,   font: 13,   radius: 6 },
+    { name: "Compacta", cardW: 112, cardH: 68, gapV: 20, gapH: 26, padH: 7,  padV: 6,  stepH: 5,   stepV: 5,   font: 11,   radius: 5 },
+    { name: "Ampla",    cardW: 180, cardH: 94, gapV: 32, gapH: 42, padH: 11, padV: 10, stepH: 7.5, stepV: 7.5, font: 15.5, radius: 7 }
   ];
   let dens = 0;
 
@@ -34,6 +36,12 @@
 
   /* ---------------- cards ---------------- */
   const ICO_CHK = '<svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg>';
+  const ICO_UP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 21 15H3z"/></svg>';
+  const TIPO = { "filme": "Filme", "série": "Série", "especial": "Esp." };
+
+  /* No card cabe só o período: "2024, seis meses após Ultimato" seria cortado
+     no meio. O texto inteiro fica no title do card e no dossiê. */
+  const curto = wh => wh.split(",")[0].trim();
 
   function mline(n) {
     const bits = [];
@@ -51,13 +59,23 @@
       const b = document.createElement("button");
       b.className = "node pre";
       b.dataset.id = n.id;
+      b.title = n.pt + "  ·  " + n.wh;
       b.style.setProperty("--pc", phColor(n));
       if (seen.has(n.id)) b.classList.add("seen");
+      const nreq = (n.req || []).length;
       b.innerHTML =
-        '<div class="meta"><span class="ph">' + (n.ph ? "F" + n.ph : "ALT") + "</span>" +
-          "<s>·</s><span>" + n.t + "</span><s>·</s><span>" + n.y + "</span></div>" +
+        '<div class="meta">' +
+          '<span class="ph">' + (n.ph ? "F" + n.ph : "ALT") + "</span>" +
+          "<s>·</s><span>" + TIPO[n.t] + "</span>" +
+          '<span class="sp"></span>' +
+          (nreq
+            ? '<span class="reqn" title="' + nreq +
+              (nreq > 1 ? " títulos para ver antes" : " título para ver antes") + '">' +
+              ICO_UP + nreq + "</span>"
+            : "") +
+        "</div>" +
         "<h3>" + n.sh + "</h3>" +
-        '<div class="when">' + n.wh + "</div>" +
+        '<div class="when"><span>' + curto(n.wh) + "</span><i>" + n.y + "</i></div>" +
         mline(n) +
         '<span class="seen-btn" title="Marcar como assistido">' + ICO_CHK + "</span>";
       b.addEventListener("click", ev => {
@@ -97,7 +115,7 @@
     cfg = {
       nCols: COLS.length, colIndex: colIndex,
       cardW: d.cardW, cardH: d.cardH, gapV: d.gapV, gapH: d.gapH,
-      padH: 13, padV: 13, stepH: d.stepH, stepV: d.stepV
+      padH: d.padH, padV: d.padV, stepH: d.stepH, stepV: d.stepV
     };
     R = LX.build(TITLES, edges, preds, cfg);
 
@@ -163,7 +181,7 @@
 
     const far = cfg.cardH * 6;
     edges.forEach((e, i) => {
-      const d = LX.path(e.pts, dens === 1 ? 5 : 7);
+      const d = LX.path(e.pts, DENS[dens].radius);
       const ph = byId[e.a].ph || 0;
       const isFar = (R.pos[e.b].y - R.pos[e.a].y) > far;
 
@@ -333,6 +351,7 @@
     });
 
     const cEl = $("count");
+    document.body.classList.toggle("filtrando", filtering);
     if (filtering) {
       const bits = [];
       if (phFilter) bits.push("Fase " + phFilter);
@@ -475,13 +494,14 @@
     const soft = (n.req || []).filter(r => !r[2]);
     const nx = (n.next || []).filter(i => byId[i]);
     const by = needed[id] || [];
-    const stone = n.ph ? STONES[n.ph][0] + " · " + STONES[n.ph][1] : "—";
+    const saga = n.ph ? SAGA_DE[n.ph].nome : "Fora das sagas";
     const totalRows = R.rows;
 
     dossier.style.setProperty("--pc", phColor(n));
     dossier.innerHTML =
+      '<div class="closebar"><button class="x" id="cls" aria-label="Fechar">' +
+        ICO_X + "</button></div>" +
       '<div class="top">' +
-        '<button class="x" id="cls" aria-label="Fechar">' + ICO_X + "</button>" +
         '<div class="kick">' +
           '<span class="pill">' + (n.ph ? "Fase " + n.ph : "Fora da continuidade") + "</span>" +
           "<span>" + n.t + "</span><span>·</span><span>" + colName[n.col] + "</span>" +
@@ -492,8 +512,8 @@
         '<dl class="facts">' +
           "<div><dt>Lançamento</dt><dd>" + n.y + "</dd></div>" +
           "<div><dt>Quando se passa</dt><dd>" + n.wh + "</dd></div>" +
-          "<div><dt>Linha do diagrama</dt><dd>" + (R.row[id] + 1) + " de " + totalRows + "</dd></div>" +
-          "<div><dt>Joia da fase</dt><dd>" + stone + "</dd></div>" +
+          "<div><dt>Posição na cronologia</dt><dd>" + (R.row[id] + 1) + " de " + totalRows + "</dd></div>" +
+          "<div><dt>Saga</dt><dd>" + saga + "</dd></div>" +
         "</dl>" +
       "</div>" +
       '<div class="body">' +
@@ -596,6 +616,17 @@
     }
   });
   addEventListener("mouseup", () => { drag = null; stage.classList.remove("grabbing"); });
+
+  /* Clique no vazio desfaz a seleção e devolve o diagrama ao estado anterior:
+     tudo aceso, ou só a fase que estiver filtrada. Arrastar para navegar não
+     conta como clique. */
+  stage.addEventListener("click", ev => {
+    if (!sel) return;
+    if (stage.classList.contains("grabbing")) return;
+    if (ev.target.closest(".node") || ev.target.closest(".hit") || ev.target.closest(".tag")) return;
+    sel = null;
+    paint();
+  });
   stage.addEventListener("wheel", e => {
     if (e.shiftKey) { stage.scrollLeft += e.deltaY; e.preventDefault(); }
   }, { passive: false });
@@ -611,7 +642,7 @@
       c.setAttribute("aria-pressed", "false");
       c.dataset.ph = p;
       c.innerHTML = "<i></i>F" + p;
-      c.title = "Fase " + p + " — Joia do " + STONES[p][0];
+      c.title = "Fase " + p + " — " + SAGA_DE[p].nome;
       c.onclick = () => {
         phFilter = phFilter === p ? null : p;
         sel = null; paint();
@@ -622,17 +653,31 @@
         }
       };
       chips.appendChild(c);
+    });
 
-      const s = document.createElement("div");
-      s.className = "stone";
-      s.style.setProperty("--pc", "var(--p" + p + ")");
-      s.innerHTML = "<i></i>F" + p + " · " + STONES[p][0];
-      stones.appendChild(s);
+    /* a legenda agrupa as fases pelas duas Sagas — o agrupamento real */
+    SAGAS.forEach(sg => {
+      const bloco = document.createElement("div");
+      bloco.className = "saga";
+      bloco.innerHTML =
+        "<h6>" + sg.nome + "</h6>" +
+        '<div class="fases">' +
+          sg.fases.map(f =>
+            '<span class="stone" style="--pc:var(--p' + f + ')"><i></i>Fase ' + f + "</span>"
+          ).join("") +
+        "</div>" +
+        "<p>Fecha em <b>" + sg.fecha + "</b></p>";
+      stones.appendChild(bloco);
     });
     const all = document.createElement("button");
     all.className = "chip plain";
     all.textContent = "Tudo";
-    all.onclick = () => { phFilter = null; q.value = ""; sel = null; paint(); };
+    all.onclick = () => {
+      phFilter = null; q.value = ""; sel = null; paint();
+      /* no celular a faixa de chips rola: sem isto o F1 fica fora de vista
+         justamente depois de limpar o filtro */
+      chips.scrollTo({ left: 0, behavior: reduced() ? "auto" : "smooth" });
+    };
     chips.appendChild(all);
   }
 
@@ -641,7 +686,19 @@
     $("tDen").title = "Densidade: " + DENS[dens].name;
     relayout();
   };
-  const leg = $("legend");
+  /* A legenda recolhe para uma barrinha só com o título — no modo compacto
+     ela cobria cards. O estado fica salvo, então a escolha vale nas próximas
+     visitas. O botão da barra continua escondendo por completo. */
+  const leg = $("legend"), fold = $("fold");
+  function setFold(min) {
+    leg.classList.toggle("min", min);
+    fold.setAttribute("aria-expanded", String(!min));
+    fold.title = min ? "Abrir legenda" : "Recolher legenda";
+    localStorage.setItem("mcu.legenda", min ? "min" : "open");
+  }
+  fold.onclick = () => setFold(!leg.classList.contains("min"));
+  setFold(localStorage.getItem("mcu.legenda") === "min");
+
   $("tLeg").onclick = () => {
     const on = leg.hidden;
     leg.hidden = !on;

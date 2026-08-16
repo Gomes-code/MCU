@@ -80,15 +80,15 @@
     ["Depois",            "Rumo às Guerras Secretas"]
   ];
 
-  /* Cada fase carrega a cor de uma Joia do Infinito. */
-  const STONES = {
-    1: ["Espaço",   "Tesseract"],
-    2: ["Realidade", "Éter"],
-    3: ["Alma",     "Vormir"],
-    4: ["Tempo",    "Olho de Agamotto"],
-    5: ["Poder",    "Orbe"],
-    6: ["Mente",    "Cetro"]
-  };
+  /* As seis Fases se agrupam em duas Sagas — este é o agrupamento oficial da
+     Marvel. Cada fase tem uma cor só para poder ser distinguida no diagrama;
+     a cor não representa nenhuma Joia do Infinito. */
+  const SAGAS = [
+    { nome: "Saga do Infinito",   fases: [1, 2, 3], fecha: "Vingadores: Ultimato" },
+    { nome: "Saga do Multiverso", fases: [4, 5, 6], fecha: "Vingadores: Guerras Secretas" }
+  ];
+  const SAGA_DE = {};
+  SAGAS.forEach(s => s.fases.forEach(f => { SAGA_DE[f] = s; }));
 
   /* Pares inseparáveis: a mesma história partida em dois, ou um título que
      começa no segundo em que o outro termina. Só estes ganham linha grossa. */
@@ -243,7 +243,8 @@
         ["ca3","O Capitão está foragido e sem escudo por causa da Guerra Civil.",true],
         ["bp1","O ato final é em Wakanda, aberta ao mundo no fim daquele filme.",true],
         ["ds1","A Joia do Tempo e o Santuário são peças centrais.",true],
-        ["sm1","Peter já é herói assumido e recebe a armadura Homem-Aranha de Ferro.",false]] },
+        ["sm1","Peter já é herói assumido e recebe a armadura Homem-Aranha de Ferro.",false],
+        ["im3","O Tony que abre este filme vem inteiro daqui: o pesadelo, o medo de perder Pepper e a armadura que ele nunca desliga.",false]] },
 
     { id:"av4", b:12, col:"aven", ph:3, y:2019, t:"filme",
       sh:"Ultimato", pt:"Vingadores: Ultimato", or:"Avengers: Endgame", wh:"2018 e 2023",
@@ -510,7 +511,8 @@
         ["tbolts","Os Novos Vingadores formados ali são parte do time.",true],
         ["ca4","Sam lidera os Vingadores a partir desse filme.",true],
         ["dpool","A ponte com o universo da Fox é construída aqui.",false],
-        ["ds2","América Chavez e o custo do Multiverso importam.",false]] },
+        ["ds2","América Chavez e o custo do Multiverso importam.",false],
+        ["sm4","O filme do Peter apresenta Jean Grey e amarra o Homem-Aranha à trama dos X-Men que Doomsday reúne.",false]] },
 
     { id:"swars", b:20, col:"aven", ph:6, y:2027, t:"filme",
       sh:"Guerras Secretas", pt:"Vingadores: Guerras Secretas", or:"Avengers: Secret Wars", wh:"?",
@@ -518,5 +520,5 @@
       next:[], req:[["dooms","É a segunda metade da mesma história. Estritamente obrigatório.",true]] }
   ];
 
-  global.MCU = { COLS, BEATS, STONES, STRICT, TITLES };
+  global.MCU = { COLS, BEATS, SAGAS, SAGA_DE, STRICT, TITLES };
 })(window);

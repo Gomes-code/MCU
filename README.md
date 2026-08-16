@@ -22,20 +22,39 @@ no topo e a contagem de títulos.
 
 | Traço | Significado |
 |---|---|
-| Linha cheia fina | Continuação direta da franquia |
+| Linha cheia fina | Continuação direta da franquia — reta quando os dois estão na mesma coluna sem nada no caminho |
 | Linha cheia grossa | Inseparável: a mesma história partida em dois |
 | Linha pontilhada | Dependência — precisa ter visto para entender |
 
 Passe o mouse em qualquer linha para ver o motivo. Clique num card para abrir
 o dossiê e isolar só as ligações dele.
 
-**Cores.** Cada uma das seis Fases carrega a cor de uma Joia do Infinito
-(Espaço, Realidade, Alma, Tempo, Poder, Mente). Isso codifica a fase de cada
-título com um sistema que vem do próprio universo. Os chips no topo isolam uma
-fase inteira, mesmo com os títulos espalhados pela cronologia.
+**Cores e sagas.** Cada fase tem uma cor própria, só para poder ser distinguida
+no diagrama — a cor não representa nenhuma Joia do Infinito. O agrupamento real
+é em duas sagas: **Saga do Infinito** (Fases 1, 2 e 3, fecha em *Ultimato*) e
+**Saga do Multiverso** (Fases 4, 5 e 6, fecha em *Guerras Secretas*). A legenda
+mostra as fases agrupadas assim, e o dossiê traz a saga de cada título. O card
+inteiro funciona como capa: um gradiente na cor da fase varre o canto superior
+esquerdo. Os chips no topo isolam uma fase, mesmo com os títulos espalhados pela
+cronologia.
+
+**No card.** Fase, tipo, título, quando se passa e — entre parênteses — o ano de
+lançamento. O contador com o triângulo (▲3) diz quantos títulos você precisa ter
+visto antes; o texto completo do "quando se passa" aparece ao passar o mouse.
+
+**Densidade.** O botão de densidade alterna entre três tamanhos reais de card
+(Padrão 136×80, Compacta 112×68, Ampla 180×94). Não é zoom: o layout é
+recalculado e o roteamento refeito, então o texto nunca fica borrado. Na Padrão
+o diagrama ocupa 2278px — cabe em ~80% de uma tela de 1920; na Compacta, 1865px.
 
 **Atalhos.** `/` foca a busca · `Esc` limpa seleção, filtro ou fecha o dossiê ·
+clicar no fundo desfaz a seleção e volta ao filtro que estiver ativo ·
 arrastar o fundo navega · `Shift` + roda rola na horizontal.
+
+**No celular** o fluxograma vira uma lista cronológica com os períodos como
+títulos e as ligações em texto ("antes" / "depois") — desenhar 120 setas numa
+tela de 390px não seria legível. A barra fica em duas faixas, com os filtros de
+fase rolando de lado, e o dossiê abre em tela cheia.
 
 ---
 
@@ -97,6 +116,7 @@ E abra <http://localhost:8000>.
 index.html                 marcação da página
 vercel.json                cabeçalhos e cache
 iniciar.bat                sobe o servidor local no Windows
+validar.bat / validar.js   confere os dados antes de publicar
 assets/favicon.svg
 assets/css/styles.css      tokens, temas claro/escuro, componentes
 assets/js/data.js          os 59 títulos, colunas, períodos, ligações
@@ -104,9 +124,20 @@ assets/js/layout.js        motor: camadas + roteamento ortogonal
 assets/js/app.js           interface, filtros, dossiê, navegação
 ```
 
-### `data.js` — editar o conteúdo
+### Como acrescentar filmes e ligações
 
-Cada título é um objeto. Para acrescentar um:
+**Quem pode editar.** Só quem tem acesso ao repositório no GitHub. O site é
+estático: não tem banco, não tem login, não tem formulário de escrita. Um
+visitante não consegue alterar nada nem que queira — não existe o que atacar.
+O controle de acesso já é o do GitHub, então **não precisa de painel de
+administrador**, e criar um seria abrir um risco que hoje não existe.
+
+O ciclo é: editar `assets/js/data.js` → conferir → `git push`. A Vercel
+republica sozinha em cerca de meio minuto.
+
+#### 1. Acrescentar um título
+
+Abra `assets/js/data.js` e copie um bloco existente como molde:
 
 ```js
 { id:"exemplo", b:17, col:"novos", ph:5, y:2026, t:"filme",
@@ -117,13 +148,71 @@ Cada título é um objeto. Para acrescentar um:
   req:[["dependencia","Por que precisa ver antes.", true]] }
 ```
 
-- `b` é o índice em `BEATS` (o período), **não** a linha. A linha é calculada.
-- `col` tem de existir em `COLS`.
-- No `req`, o terceiro valor `true` significa "obrigatório"; `false`,
-  "ajuda a entender".
-- `STRICT` lista os pares que ganham linha grossa.
+| Campo | O que é |
+|---|---|
+| `id` | apelido curto e único, sem espaço nem acento — é como as ligações se referem a ele |
+| `b` | índice do período em `BEATS`, **não** a linha; a linha é calculada sozinha |
+| `col` | franquia; tem de ser uma das chaves de `COLS` |
+| `ph` | fase de 1 a 6, ou `null` se estiver fora da continuidade |
+| `t` | `filme`, `série` ou `especial` |
+| `sh` | nome que aparece no card — curto, até ~30 caracteres |
+| `pt` / `or` | nome completo em português e o título original |
+| `wh` | quando se passa; o card mostra só o que vem antes da vírgula |
+| `y` | ano de lançamento |
+| `syn` | duas frases, aparecem no dossiê |
 
-Não existe passo de build: salve e recarregue.
+#### 2. Acrescentar uma ligação
+
+Existem duas, e a diferença importa:
+
+```js
+// no título de ORIGEM — sequência direta, vira linha cheia
+next:["id_do_seguinte"]
+
+// no título de DESTINO — dependência, vira linha pontilhada com o motivo
+req:[["id_do_anterior", "Por que precisa ter visto antes.", true]]
+```
+
+O `true` no fim significa "você precisa ter visto"; `false` significa
+"ajuda a entender". Isso separa as duas listas do dossiê.
+
+Para a linha grossa de *inseparável* (a mesma história partida em dois),
+acrescente o par em `STRICT`, no formato `"origem>destino"`. A ligação precisa
+existir antes, em `next` ou em `req`.
+
+**A ligação só pode descer no tempo.** Se A liga em B, o período de B tem de ser
+igual ou posterior ao de A. O validador avisa quando isso é violado.
+
+#### 3. Conferir antes de publicar
+
+Dê dois cliques em **`validar.bat`** (ou rode `node validar.js`). Ele aponta:
+
+- id que não existe, por erro de digitação
+- coluna ou período inválido
+- ligação apontando para trás no tempo
+- dependência sem motivo escrito
+- vírgula, aspas ou colchete faltando — **com o número da linha**
+- linha do desenho passando por cima de um card
+
+Enquanto houver erro, ele lista o que corrigir. Passando, diz `TUDO CERTO`.
+
+#### 4. Publicar
+
+```bash
+git add assets/js/data.js
+git commit -m "Acrescenta Vingadores: Guerras Secretas"
+git push
+```
+
+A Vercel detecta o push e republica. Não existe passo de build.
+
+#### Acrescentar uma franquia ou um período novo
+
+- **Franquia:** acrescente um par em `COLS`. Cuidado: a ordem das colunas foi
+  otimizada (veja abaixo) e mexer nela reembaralha o desenho.
+- **Período:** acrescente em `BEATS`, na posição cronológica certa. Como os
+  títulos apontam para `BEATS` pelo índice, inserir no meio desloca todos os
+  `b` seguintes — nesse caso rode o validador, que aponta o estrago.
 
 ### `layout.js` — como o desenho é decidido
 
@@ -143,8 +232,8 @@ três zonas (saída, degrau, entrada) para que descidas e subidas nunca se
 encontrem.
 
 Resultado verificado: **0 sobreposições paralelas** e **0 linhas atravessando
-cards**. Os 696 cruzamentos perpendiculares que restam são legíveis — é assim
-que qualquer diagrama funciona.
+cards**, nas três densidades. Os 696 cruzamentos perpendiculares que restam são
+legíveis — é assim que qualquer diagrama funciona.
 
 **A ordem das colunas em `COLS` é resultado de otimização**, não de tema. Ela
 minimiza, em ordem de prioridade: linhas visualmente vazias, espalhamento
